@@ -768,18 +768,18 @@ const Player = ({ urlParams, queryParams }) => {
         const onKeyDown = (e) => {
             if (e.code !== 'Space' || e.repeat) return;
             if (menusOpen || nextVideoPopupOpen) return;
-
+    
             longPress.current = false;
-
+    
             pressTimer.current = setTimeout(() => {
                 longPress.current = true;
                 onPlaybackSpeedChanged(2, true);
             }, HOLD_DELAY);
         };
-
+    
         const onKeyUp = (e) => {
             if (e.code !== 'Space' && e.code !== 'ArrowRight' && e.code !== 'ArrowLeft') return;
-
+    
             if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
                 setSeeking(false);
                 return;
@@ -790,10 +790,10 @@ const Player = ({ urlParams, queryParams }) => {
                 onPlaybackSpeedChanged(playbackSpeed.current);
             }
         };
-
+    
         const onWheel = ({ deltaY }) => {
             if (menusOpen || video.state.volume === null) return;
-
+    
             if (deltaY > 0) {
                 onVolumeChangeRequested(Math.max(video.state.volume - 5, 0));
             } else {
@@ -802,43 +802,73 @@ const Player = ({ urlParams, queryParams }) => {
                 }
             }
         };
-
-        const onMouseDownHold = (e) => {
-            if (e.button !== 0) return; // left mouse button only
-            if (menusOpen || nextVideoPopupOpen) return;
-            if (controlBarRef.current && controlBarRef.current.contains(e.target)) return;
-
+    
+        const startHold = () => {
             longPress.current = false;
-
+    
             pressTimer.current = setTimeout(() => {
                 longPress.current = true;
                 onPlaybackSpeedChanged(2, true);
             }, HOLD_DELAY);
         };
-
-        const onMouseUp = (e) => {
-            if (e.button !== 0) return;
-
+    
+        const endHold = () => {
             clearTimeout(pressTimer.current);
-
+    
             if (longPress.current) {
                 onPlaybackSpeedChanged(playbackSpeed.current);
             }
         };
-
+    
+        const onMouseDownHold = (e) => {
+            if (e.button !== 0) return;
+            if (menusOpen || nextVideoPopupOpen) return;
+            if (controlBarRef.current && controlBarRef.current.contains(e.target)) return;
+    
+            startHold();
+        };
+    
+        const onMouseUp = (e) => {
+            if (e.button !== 0) return;
+            endHold();
+        };
+    
+        // NEW (touch support)
+        const onTouchStart = (e) => {
+            if (menusOpen || nextVideoPopupOpen) return;
+            if (controlBarRef.current && controlBarRef.current.contains(e.target)) return;
+    
+            startHold();
+        };
+    
+        const onTouchEnd = () => {
+            endHold();
+        };
+    
         if (routeFocused) {
             window.addEventListener('keyup', onKeyUp);
             window.addEventListener('keydown', onKeyDown);
             window.addEventListener('wheel', onWheel);
             window.addEventListener('mousedown', onMouseDownHold);
             window.addEventListener('mouseup', onMouseUp);
+    
+            // NEW (touch support)
+            window.addEventListener('touchstart', onTouchStart);
+            window.addEventListener('touchend', onTouchEnd);
+            window.addEventListener('touchcancel', onTouchEnd);
         }
+    
         return () => {
             window.removeEventListener('keyup', onKeyUp);
             window.removeEventListener('keydown', onKeyDown);
             window.removeEventListener('wheel', onWheel);
             window.removeEventListener('mousedown', onMouseDownHold);
             window.removeEventListener('mouseup', onMouseUp);
+    
+            // NEW (touch support)
+            window.removeEventListener('touchstart', onTouchStart);
+            window.removeEventListener('touchend', onTouchEnd);
+            window.removeEventListener('touchcancel', onTouchEnd);
         };
     }, [routeFocused, menusOpen, video.state.volume]);
 
